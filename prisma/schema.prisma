@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  googleSubject  String   @unique
+  name           String?
+  email          String?
+  image          String?
+  locale         String   @default("en")
+  sessionVersion Int      @default(0)
+  aiConsentAt    DateTime?
+  theme          Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  connection     ProviderConnection?
+  conversations  Conversation[]
+  playlists      Playlist[]
+  moods          SavedMood[]
+  feedback       Feedback[]
+}
+
+model ProviderConnection {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken     String
+  refreshToken    String?
+  expiresAt       DateTime
+  scopes          String
+  updatedAt       DateTime @updatedAt
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode      String   @default("guided")
+  locale    String   @default("en")
+  vibe      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  Message[]
+  @@index([userId, updatedAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  createdAt      DateTime     @default(now())
+  @@index([conversationId, createdAt])
+}
+
+model Playlist {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  description       String
+  vibe              Json
+  controls          Json
+  tracks            Json
+  version           Int      @default(1)
+  status            String   @default("draft")
+  resolutionStatus  String   @default("complete")
+  youtubePlaylistId String?
+  saveError         String?
+  saveLockedAt      DateTime?
+  saveAttemptedAt   DateTime?
+  savedVideoIds     Json     @default("[]")
+  metadataFetchedAt DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  feedback          Feedback[]
+  @@index([userId, createdAt])
+}
+
+model SavedMood {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  vibe      Json
+  controls  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, createdAt])
+}
+
+model Feedback {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  trackId    String   @default("")
+  value      Int
+  updatedAt  DateTime @updatedAt
+  @@unique([userId, playlistId, trackId])
+}
+
+model CatalogCache {
+  key       String   @id
+  data      Json
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([expiresAt])
+}

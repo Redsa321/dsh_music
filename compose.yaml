@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dsh_music}
+      POSTGRES_USER: ${POSTGRES_USER:-dsh_music}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dsh_music_local_password}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dsh_music_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dsh_music_postgres:
